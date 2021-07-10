@@ -16,6 +16,7 @@ export default function Home() {
         <link rel="icon" href="/favicon.png" />
       </Head>
       <HomeMenubar></HomeMenubar>
+      <h1>Yeet</h1>
     </div>
   );
 }
