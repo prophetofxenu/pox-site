@@ -14,7 +14,8 @@ export default function HomeMenubar() {
 
           <div className={styles.xeImg}>
             <Link href="/" passHref ><a>
-              <Image src={xe} alt="Xenon" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/xe-symbol-outlined.svg" alt="Xenon" />
             </a></Link>
           </div>
 
