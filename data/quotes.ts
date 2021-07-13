@@ -43,6 +43,10 @@ let Quotes: { quote: string, author: string }[] = [
     quote: "However you choose to forge your destiny, do so with heart.",
     author: "EVE Online - Birth Of The Capsuleer"
   },
+  {
+    quote: "I would rather see you lose than win myself.",
+    author: "Phillip Price, Mr. Robot"
+  }
 ];
 
 export default Quotes;
