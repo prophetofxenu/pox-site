@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import styles from "../styles/components/HomeMenubar.module.scss";
 
-import xe from "../public/images/xe.png";
+import xe from "../public/images/xe-symbol-outlined.svg";
 
 export default function HomeMenubar() {
   return (
