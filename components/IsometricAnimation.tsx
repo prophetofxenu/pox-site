@@ -3,39 +3,60 @@ import styles from "../styles/components/IsometricAnimation.module.scss";
 
 class Diamond {
 
-  static directions = [30, 150, 210, 330] as const;
-  static speed = 1;
+  private static directions = [30, 150, 210, 330] as const;
+  private static maxSpeed = 3;
+  private static canvas: HTMLCanvasElement;
+
+  private static nextDir = -1;
+  private static nextDirection() {
+    Diamond.nextDir = (Diamond.nextDir + 1) % Diamond.directions.length;
+    return Diamond.directions[Diamond.nextDir];
+  }
 
   public x: number;
   public y: number;
 
   private color: string;
+  private speed: number;
   private dir: 30 | 150 | 210 | 330;
+  private dirCooldown = 0;
 
   constructor(x: number, y: number, color: string) {
     this.x = x;
     this.y = y;
     this.color = color;
 
-    this.dir = Diamond.directions[Math.floor(Math.random() * 4)];
+    this.dir = Diamond.nextDirection();
+    this.speed = Math.floor(Math.random() * Diamond.maxSpeed) + 1;
+
+    if (Diamond.canvas === undefined)
+      this.prerender();
+  }
+
+  private prerender() {
+    let canvas = document.createElement("canvas");
+    canvas.width = 34;
+    canvas.height = 20;
+    let context = canvas.getContext("2d");
+    if (context === null)
+      throw "prerender: context was null";
+    
+    context.fillStyle = "#f508f4";
+    context.beginPath();
+    context.moveTo(17, 0);
+    context.lineTo(34, 10);
+    context.lineTo(17, 20);
+    context.lineTo(0, 10);
+    context.closePath();
+    context.fill();
+
+    Diamond.canvas = canvas;
   }
 
   public draw(ctx: CanvasRenderingContext2D): void {
-    let oldStyle = ctx.fillStyle;
-
     let x = Math.floor(this.x);
     let y = Math.floor(this.y);
-
-    ctx.fillStyle = "#f508f4";
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + 17, y + 10);
-    ctx.lineTo(x, y + 20);
-    ctx.lineTo(x - 17, y + 10);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = oldStyle;
+    ctx.drawImage(Diamond.canvas, x, y);
   }
 
   private dirUp() {
@@ -73,19 +94,20 @@ class Diamond {
   }
 
   private rollNewDirection(): void {
-    if (Math.random() > 0.99) {
+    if (this.dirCooldown > 100 && Math.random() > 0.99) {
       if (Math.random() > 0.5) {
         this.dirUp();
       } else {
         this.dirDown();
       }
     }
+    this.dirCooldown++;
   }
 
   public next(): void {
     this.rollNewDirection();
-    this.x += Math.cos(this.dir * Math.PI / 180) * Diamond.speed;
-    this.y -= Math.sin(this.dir * Math.PI / 180) * Diamond.speed;
+    this.x += Math.cos(this.dir * Math.PI / 180) * this.speed;
+    this.y -= Math.sin(this.dir * Math.PI / 180) * this.speed;
   }
 
 }
@@ -118,20 +140,36 @@ export default function IsometricAnimation() {
     let image = new Image();
     let x = 75;
     let y = 40;
-    let scale = 0.4;
+    const scale = 0.4;
     image.src = "/images/xe-isometric-outlined.png";
 
     let frame = 0;
     let diamonds: Diamond[] = [];
-    let diamondColor = "#f508f4";
-    let render = () => {
+    const diamondColor = "#f508f4";
+    let lastTime = performance.now();
+    const frameThreshold = Math.floor(1000 / 60);
+    let render = (now: any) => {
       if (canvas === null || canvas === undefined ||
         ctx === null || ctx === undefined)
-        return;
+        throw "render: context was null";
 
-      ctx.clearRect(0, 0, canvas?.width, canvas?.height);
-      ctx.fillStyle = "black";
-      ctx.fillRect(0, 0, window.innerWidth, canvas.height);
+      let prerender = document.createElement("canvas");
+      prerender.width = canvas.width;
+      prerender.height = canvas.height;
+      let pctx = prerender.getContext("2d");
+      if (pctx === null)
+        throw "render: prerender context was null";
+
+      let elapsed = now - lastTime;
+      if (elapsed < frameThreshold) {
+        requestAnimationFrame(render);
+        return;
+      }
+      lastTime = now;
+
+      pctx.clearRect(0, 0, canvas?.width, canvas?.height);
+      pctx.fillStyle = "black";
+      pctx.fillRect(0, 0, window.innerWidth, canvas.height);
 
       let popupD = 50;
       let popupT = (frame - 60) / popupD;
@@ -147,23 +185,21 @@ export default function IsometricAnimation() {
           diamonds.push(new Diamond(125, 75, diamondColor));
         }
 
-        for (let i = 0; i < diamonds.length; i++) {
+        for (let i = 0; i < diamonds.length; ) {
           let diamond = diamonds[i];
           diamond.next();
-          if (diamond.x < -20 || diamond.x > canvas.width + 20 ||
-            diamond.y < -20 || diamond.y > canvas.height + 20) {
+          if (diamond.x < -40 || diamond.x > canvas.width + 40 ||
+            diamond.y < -30 || diamond.y > canvas.height + 30) {
               diamonds.splice(i, 1);
-              console.log("delete");
           } else {
-            diamond.draw(ctx);
+            diamond.draw(pctx);
+            i++;
           }
         }
 
       }
 
-      ctx.drawImage(image, x, y, 581 * scale, 410 * scale);
-
-      frame++;
+      pctx.drawImage(image, x, y, 581 * scale, 410 * scale);
 
       if (frame > popupDelay && frame < popupD + popupDelay + 2) {
         y = -popupC * popupT * (popupT - 2) + popupB;
@@ -171,29 +207,32 @@ export default function IsometricAnimation() {
 
       if (frame < popupD + popupDelay + 2) {
         let base = { x: 75, y: 101 };
-        ctx.fillStyle = "black";
-        ctx.beginPath();
-        ctx.moveTo(base.x, base.y);
-        ctx.lineTo(base.x + 127, base.y + 73);
-        ctx.lineTo(base.x + 127, base.y + 105);
-        ctx.lineTo(base.x, base.y + 30);
-        ctx.closePath();
-        ctx.fill();
+        pctx.fillStyle = "black";
+        pctx.beginPath();
+        pctx.moveTo(base.x, base.y);
+        pctx.lineTo(base.x + 127, base.y + 73);
+        pctx.lineTo(base.x + 127, base.y + 105);
+        pctx.lineTo(base.x, base.y + 30);
+        pctx.closePath();
+        pctx.fill();
 
         base = { x: 75 + 127, y: 101 + 73 };
-        ctx.beginPath();
-        ctx.moveTo(base.x, base.y);
-        ctx.lineTo(base.x + 106, base.y - 61);
-        ctx.lineTo(base.x + 106, base.y - 31);
-        ctx.lineTo(base.x, base.y + 30);
-        ctx.closePath();
-        ctx.fill();
+        pctx.beginPath();
+        pctx.moveTo(base.x, base.y);
+        pctx.lineTo(base.x + 106, base.y - 61);
+        pctx.lineTo(base.x + 106, base.y - 31);
+        pctx.lineTo(base.x, base.y + 30);
+        pctx.closePath();
+        pctx.fill();
       }
+
+      ctx.drawImage(prerender, 0, 0);
+      frame++;
+      requestAnimationFrame(render);
 
     };
 
-    let timer = setInterval(() => requestAnimationFrame(render), 1000 / 60);
-    return () => clearInterval(timer);
+    requestAnimationFrame(render);
 
   }, [width]);
 

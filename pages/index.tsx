@@ -1,11 +1,11 @@
 import Head from "next/head";
-import Image from "next/image";
 import { GetServerSideProps } from "next";
 
 import styles from "../styles/Home.module.scss";
 
 import HomeMenubar from "../components/HomeMenubar";
 import HackerTyper from "../components/HackerTyper";
+import IsometricAnimation from "../components/IsometricAnimation";
 
 import Quotes from "../data/quotes";
 
@@ -31,6 +31,7 @@ export default function Home(props: { quote: string, quoteAuthor: string }) {
       </Head>
       <HomeMenubar></HomeMenubar>
       <main className={styles.main}>
+        <IsometricAnimation />
         <HackerTyper className={styles.quote} text={props.quote} mouseOver={props.quoteAuthor} />
       </main>
     </div>
