@@ -152,6 +152,7 @@ export default function IsometricAnimation() {
       if (canvas === null || canvas === undefined ||
         ctx === null || ctx === undefined)
         throw "render: context was null";
+      canvas.width = window.innerWidth;
 
       let prerender = document.createElement("canvas");
       prerender.width = canvas.width;
